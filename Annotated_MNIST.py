@@ -1,9 +1,12 @@
+import random
+
 import tensorflow as tf
 import numpy as np
 import cv2
 
 from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets('MNIST_data', one_hot=False)
+
 
 class Annotated_MNIST():
 
@@ -38,6 +41,8 @@ class Annotated_MNIST():
                          'with': 14, \
                          'left': 15, 'average': 16, 'right': 17, \
                          'skew': 18}
+
+        self.idx2word = {idx: word for (word, idx) in self.word2idx.items()}
 
 
     def get_nums(self, num):
@@ -78,7 +83,7 @@ class Annotated_MNIST():
             return 'thick'
 
 
-    def rotate_and_scale(self, img, angle, scale):
+    def __rotate_and_scale(self, img, angle, scale):
         M = cv2.getRotationMatrix2D((14, 14), angle, scale)
         return cv2.warpAffine(img, M, (28, 28))
 
@@ -98,7 +103,7 @@ class Annotated_MNIST():
             max_overlap = 0
             max_angle = 0
             for angle in range(-90, 90, 5):
-                temp1 = self.rotate_and_scale(num, angle, 1)
+                temp1 = self.__rotate_and_scale(num, angle, 1)
                 temp2 = temp1[:, lb:ub]
 
                 if max_overlap <= np.sum(temp2 != 0):
@@ -130,7 +135,7 @@ class Annotated_MNIST():
         max_overlap = 0
         max_angle = 0
         for angle in range(-90, 90, 5):
-            temp1 = self.rotate_and_scale(img, angle, 1)
+            temp1 = self.__rotate_and_scale(img, angle, 1)
             temp2 = temp1[:, lb:ub]
 
             if max_overlap <= np.sum(temp2 != 0):
@@ -204,14 +209,79 @@ class Annotated_MNIST():
 
         if resize:
 
+            batch_xs = np.reshape(images, [-1, 784])
+
             for i in range(batch_size):
                 images[i] = cv2.resize(images[i], (14, 14), interpolation=0)
 
-            batch_xs = np.reshape(images, [-1, 196])
+            batch_xs_small = np.reshape(images, [-1, 196])
             batch_ys = labels
+
+            return descriptions, batch_xs, batch_xs_small, batch_ys
         
         else:
             batch_xs = np.reshape(images, [-1, 784])
             batch_ys = labels
 
-        return descriptions, batch_xs, batch_ys
+            return descriptions, batch_xs, batch_ys
+
+
+    def generate_sentences(self, num, divide=True, convert_to_idx=True):
+        sentences = []
+
+        thickness = ['thin', 'normal', 'thick']
+        nums = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
+        skew = ['left skew', 'average skew', 'right skew']
+
+        for i in range(num):
+            sentence = ''
+
+            sentence += random.choice(thickness)
+            sentence += ' number '
+            sentence += random.choice(nums)
+            sentence += ' with '
+            sentence += random.choice(skew)
+
+            if divide:
+                sentences.append(sentence.split())
+            else:
+                sentences.append(sentence)
+
+        if convert_to_idx:
+
+            for i in range(num):
+                sentences[i] = list(map(self.word2idx.get, sentences[i]))
+
+            return sentences
+        
+        else:
+
+            return sentences
+
+
+    def convert_to_word(self, sentences, concat=True):
+        res = []
+
+        for sentence in sentences:
+            res.append(list(map(self.idx2word.get, sentence)))
+
+        if concat:
+
+            for i in range(len(res)):
+
+                sent = ''
+                for word in res[i]:
+                    sent += word + ' '
+
+                res[i] = str.rstrip(sent)
+
+        return res
+
+
+    def convert_to_idx(self, sentences):
+        res = []
+
+        for sentence in sentences:
+            res.append(list(map(self.word2idx.get, sentence.split())))
+
+        return res
