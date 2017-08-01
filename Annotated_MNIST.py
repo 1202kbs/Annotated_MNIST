@@ -11,9 +11,8 @@ mnist = input_data.read_data_sets('MNIST_data', one_hot=False)
 class Annotated_MNIST():
 
     def __init__(self, train=False):
-        self.train = train
 
-        if self.train:
+        if train:
             self.batches = mnist.train
             self.labels = mnist.train.labels
             self.images = np.reshape(mnist.train.images, [-1, 28, 28])
@@ -210,11 +209,13 @@ class Annotated_MNIST():
         if resize:
 
             batch_xs = np.reshape(images, [-1, 784])
+            images_small = []
 
             for i in range(batch_size):
-                images[i] = cv2.resize(images[i], (14, 14), interpolation=0)
+                images_small.append(cv2.resize(images[i], (14, 14), interpolation=0))
 
-            batch_xs_small = np.reshape(images, [-1, 196])
+            images_small = np.array(images_small)
+            batch_xs_small = np.reshape(images_small, [-1, 196])
             batch_ys = labels
 
             return descriptions, batch_xs, batch_xs_small, batch_ys
